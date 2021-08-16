@@ -1,6 +1,7 @@
 # Copyright 2021-present Kensho Technologies, LLC.
 from __future__ import division
 
+import pandas as pd
 import functools
 import heapq
 import logging
@@ -314,7 +315,7 @@ class BeamSearchDecoderCTC:
         prune_history: bool,
         hotword_scorer: HotwordScorer,
         lm_start_state: LMState = None,
-    ) -> List[OutputBeam]:
+    ) -> List[OutputBeam], pd.DataFrame:
         """Perform beam search decoding."""
         # local dictionaries to cache scores during decoding
         # we can pass in an input start state to keep the decoder stateful and working on realtime
@@ -328,9 +329,11 @@ class BeamSearchDecoderCTC:
         cached_p_lm_scores: Dict[str, float] = {}
         # start with single beam to expand on
         beams = [EMPTY_START_BEAM]
+        history_beams = []
         # bpe we can also have trailing word boundaries ▁⁇▁ so we may need to remember breaks
         force_next_break = False
         for frame_idx, logit_col in enumerate(logits):
+            print("LEN OF HISTORY: ", len(history_beams))
             max_idx = logit_col.argmax()
             idx_list = set(np.where(logit_col >= token_min_logp)[0]) | {max_idx}
             new_beams: List[Beam] = []
@@ -435,6 +438,7 @@ class BeamSearchDecoderCTC:
             max_score = max([b[-1] for b in scored_beams])
             scored_beams = [b for b in scored_beams if b[-1] >= max_score + beam_prune_logp]
             # beam pruning by taking highest N prefixes and then filtering down
+            history_beams += scored_beams
             trimmed_beams = _sort_and_trim_beams(scored_beams, beam_width)
             # prune history and remove lm score from beams
             if prune_history:
@@ -459,6 +463,7 @@ class BeamSearchDecoderCTC:
         # remove beam outliers
         max_score = max([b[-1] for b in scored_beams])
         scored_beams = [b for b in scored_beams if b[-1] >= max_score + beam_prune_logp]
+        history_beams += scored_beams
         trimmed_beams = _sort_and_trim_beams(scored_beams, beam_width)
         # remove unnecessary information from beams
         output_beams = [
@@ -471,7 +476,8 @@ class BeamSearchDecoderCTC:
             )
             for text, _, _, _, text_frames, _, logit_score, lm_score in trimmed_beams
         ]
-        return output_beams
+        logged_df = pd.DataFrame(history_beams)
+        return output_beams, logged_df
 
     def decode_beams(
         self,
@@ -483,7 +489,7 @@ class BeamSearchDecoderCTC:
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
         lm_start_state: LMState = None,
-    ) -> List[OutputBeam]:
+    ) -> List[OutputBeam], pd.DataFrame:
         """Convert input token logit matrix to decoded beams including meta information.
 
         Args:
@@ -514,7 +520,7 @@ class BeamSearchDecoderCTC:
         else:
             # convert logits into log probs
             logits = np.clip(_log_softmax(logits, axis=1), np.log(MIN_TOKEN_CLIP_P), 0)
-        decoded_beams = self._decode_logits(
+        decoded_beams, logged_df = self._decode_logits(
             logits,
             beam_width=beam_width,
             beam_prune_logp=beam_prune_logp,
@@ -523,7 +529,7 @@ class BeamSearchDecoderCTC:
             hotword_scorer=hotword_scorer,
             lm_start_state=lm_start_state,
         )
-        return decoded_beams
+        return decoded_beams, logged_df
 
     def _decode_beams_mp_safe(
         self,
@@ -598,7 +604,7 @@ class BeamSearchDecoderCTC:
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
         lm_start_state: LMState = None,
-    ) -> str:
+    ) -> str, pd.DataFrame:
         """Convert input token logit matrix to decoded text.
 
         Args:
@@ -613,7 +619,7 @@ class BeamSearchDecoderCTC:
         Returns:
             The decoded text (str)
         """
-        decoded_beams = self.decode_beams(
+        decoded_beams, logged_df = self.decode_beams(
             logits,
             beam_width=beam_width,
             beam_prune_logp=beam_prune_logp,
@@ -623,7 +629,7 @@ class BeamSearchDecoderCTC:
             hotword_weight=hotword_weight,
             lm_start_state=lm_start_state,
         )
-        return decoded_beams[0][0]
+        return decoded_beams[0][0], logged_df
 
     def decode_batch(
         self,
