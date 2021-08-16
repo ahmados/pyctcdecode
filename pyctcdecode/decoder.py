@@ -315,7 +315,7 @@ class BeamSearchDecoderCTC:
         prune_history: bool,
         hotword_scorer: HotwordScorer,
         lm_start_state: LMState = None,
-    ) -> List[OutputBeam], pd.DataFrame:
+    ) -> Tuple[List[OutputBeam], pd.DataFrame]:
         """Perform beam search decoding."""
         # local dictionaries to cache scores during decoding
         # we can pass in an input start state to keep the decoder stateful and working on realtime
@@ -489,7 +489,7 @@ class BeamSearchDecoderCTC:
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
         lm_start_state: LMState = None,
-    ) -> List[OutputBeam], pd.DataFrame:
+    ) -> Tuple[List[OutputBeam], pd.DataFrame]:
         """Convert input token logit matrix to decoded beams including meta information.
 
         Args:
@@ -604,7 +604,7 @@ class BeamSearchDecoderCTC:
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
         lm_start_state: LMState = None,
-    ) -> str, pd.DataFrame:
+    ) -> Tuple[str, pd.DataFrame]:
         """Convert input token logit matrix to decoded text.
 
         Args:
