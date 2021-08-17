@@ -214,12 +214,12 @@ class LanguageModel(AbstractLanguageModel):
     ) -> Tuple[float, kenlm.State]:
         """Score word conditional on start state."""
         end_state = _get_empty_lm_state()
-        lm_score = self._kenlm_model.BaseScore(prev_state, word, end_state)
+        lm_score = self._kenlm_model.BaseScore(prev_state, word.lower(), end_state)
         # override UNK prob. use unigram set if we have because it's faster
         if (
             len(self._unigram_set) > 0
             and word not in self._unigram_set
-            or word not in self._kenlm_model
+            or word.lower() not in self._kenlm_model
         ):
             lm_score += self.unk_score_offset
         # add end of sentence context if needed
