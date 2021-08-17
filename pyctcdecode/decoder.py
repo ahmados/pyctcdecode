@@ -333,7 +333,7 @@ class BeamSearchDecoderCTC:
         # bpe we can also have trailing word boundaries ▁⁇▁ so we may need to remember breaks
         force_next_break = False
         for frame_idx, logit_col in enumerate(logits):
-            print("LEN OF HISTORY: ", len(history_beams))
+#             print("LEN OF HISTORY: ", len(history_beams))
             max_idx = logit_col.argmax()
             idx_list = set(np.where(logit_col >= token_min_logp)[0]) | {max_idx}
             new_beams: List[Beam] = []
