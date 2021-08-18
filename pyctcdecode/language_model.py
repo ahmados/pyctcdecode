@@ -218,7 +218,7 @@ class LanguageModel(AbstractLanguageModel):
         # override UNK prob. use unigram set if we have because it's faster
         if (
             len(self._unigram_set) > 0
-            and word not in self._unigram_set
+            and word.lower() not in self._unigram_set
             or word.lower() not in self._kenlm_model
         ):
             lm_score += self.unk_score_offset
