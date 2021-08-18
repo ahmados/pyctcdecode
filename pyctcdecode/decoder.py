@@ -314,7 +314,7 @@ class BeamSearchDecoderCTC:
         token_min_logp: float,
         prune_history: bool,
         hotword_scorer: HotwordScorer,
-        is_history_df: bool,
+        is_history_df: bool = False,
         lm_start_state: LMState = None,
     ) -> Tuple[List[OutputBeam], pd.DataFrame]:
         """Perform beam search decoding."""
@@ -493,7 +493,7 @@ class BeamSearchDecoderCTC:
         prune_history: bool = DEFAULT_PRUNE_BEAMS,
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
-        is_history_df: bool,
+        is_history_df: bool = False,
         lm_start_state: LMState = None,
     ) -> Tuple[List[OutputBeam], pd.DataFrame]:
         """Convert input token logit matrix to decoded beams including meta information.
@@ -610,7 +610,7 @@ class BeamSearchDecoderCTC:
         token_min_logp: float = DEFAULT_MIN_TOKEN_LOGP,
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
-        is_history_df: bool,
+        is_history_df: bool = False,
         lm_start_state: LMState = None,
     ) -> Tuple[str, pd.DataFrame]:
         """Convert input token logit matrix to decoded text.
