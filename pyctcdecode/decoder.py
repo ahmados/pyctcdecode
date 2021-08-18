@@ -315,6 +315,7 @@ class BeamSearchDecoderCTC:
         prune_history: bool,
         hotword_scorer: HotwordScorer,
         lm_start_state: LMState = None,
+        is_history_df: bool,
     ) -> Tuple[List[OutputBeam], pd.DataFrame]:
         """Perform beam search decoding."""
         # local dictionaries to cache scores during decoding
@@ -438,7 +439,8 @@ class BeamSearchDecoderCTC:
             max_score = max([b[-1] for b in scored_beams])
             scored_beams = [b for b in scored_beams if b[-1] >= max_score + beam_prune_logp]
             # beam pruning by taking highest N prefixes and then filtering down
-            history_beams += scored_beams
+            if is_history_df:
+                history_beams += scored_beams
             trimmed_beams = _sort_and_trim_beams(scored_beams, beam_width)
             # prune history and remove lm score from beams
             if prune_history:
@@ -463,7 +465,8 @@ class BeamSearchDecoderCTC:
         # remove beam outliers
         max_score = max([b[-1] for b in scored_beams])
         scored_beams = [b for b in scored_beams if b[-1] >= max_score + beam_prune_logp]
-        history_beams += scored_beams
+        if is_history_df:
+            history_beams += scored_beams
         trimmed_beams = _sort_and_trim_beams(scored_beams, beam_width)
         # remove unnecessary information from beams
         output_beams = [
@@ -476,7 +479,9 @@ class BeamSearchDecoderCTC:
             )
             for text, _, _, _, text_frames, _, logit_score, lm_score in trimmed_beams
         ]
-        logged_df = pd.DataFrame(history_beams)
+        logged_df = pd.DataFrame(history_beams, columns=['text', 'next_word', 'partial_word',
+                                                         'last_char',
+                                                         'text_frames', 'part_frames', 'logit_score', 'logit_lm_score'])
         return output_beams, logged_df
 
     def decode_beams(
@@ -489,6 +494,7 @@ class BeamSearchDecoderCTC:
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
         lm_start_state: LMState = None,
+        is_history_df: bool,
     ) -> Tuple[List[OutputBeam], pd.DataFrame]:
         """Convert input token logit matrix to decoded beams including meta information.
 
@@ -528,6 +534,7 @@ class BeamSearchDecoderCTC:
             prune_history=prune_history,
             hotword_scorer=hotword_scorer,
             lm_start_state=lm_start_state,
+            is_history_df=is_history_df,
         )
         return decoded_beams, logged_df
 
@@ -604,6 +611,7 @@ class BeamSearchDecoderCTC:
         hotwords: Optional[Iterable[str]] = None,
         hotword_weight: float = DEFAULT_HOTWORD_WEIGHT,
         lm_start_state: LMState = None,
+        is_history_df: bool,
     ) -> Tuple[str, pd.DataFrame]:
         """Convert input token logit matrix to decoded text.
 
@@ -628,6 +636,7 @@ class BeamSearchDecoderCTC:
             hotwords=hotwords,
             hotword_weight=hotword_weight,
             lm_start_state=lm_start_state,
+            is_history_df=is_history_df,
         )
         return decoded_beams[0][0], logged_df
 
